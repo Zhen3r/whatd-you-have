@@ -1,0 +1,23 @@
+[project]
+name = "whatd-you-have"
+version = "0.1.0"
+description = "WeChat diet-tracking bot with Kimi vision and escalating nag bombs"
+requires-python = ">=3.11"
+dependencies = [
+    "wechatbot-sdk>=0.2.0",
+    "httpx>=0.27",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "apscheduler>=3.10",
+    "aiosqlite>=0.20",
+]
+
+[project.scripts]
+whatd-you-have = "whatd_you_have.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/whatd_you_have"]
