@@ -67,7 +67,7 @@ async def analyze_food_image(image_bytes: bytes) -> dict[str, Any]:
                 ],
             },
         ],
-        "temperature": 0.2,
+        "temperature": 1,
     }
     return await _chat_for_json(payload)
 
@@ -79,7 +79,7 @@ async def analyze_food_text(description: str) -> dict[str, Any]:
             {"role": "system", "content": VISION_SYSTEM_PROMPT},
             {"role": "user", "content": f"用户文字描述了自己吃的：{description}\n按要求输出 JSON。"},
         ],
-        "temperature": 0.2,
+        "temperature": 1,
     }
     return await _chat_for_json(payload)
 
@@ -114,7 +114,7 @@ async def write_daily_summary(meals_brief: str, goal_kcal: int) -> str:
             {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
             {"role": "user", "content": user_msg},
         ],
-        "temperature": 0.6,
+        "temperature": 1,
     }
     url = f"{settings.kimi_base_url.rstrip('/')}/chat/completions"
     async with httpx.AsyncClient(timeout=90.0) as client:
