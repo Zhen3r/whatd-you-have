@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     nag_end_hour: int = 23
 
     default_daily_calorie_goal: int = 1800
+    image_caption_wait_secs: int = 30
 
 
 settings = Settings()  # type: ignore[call-arg]

@@ -205,6 +205,70 @@ async def set_nag_state(wxid: str, last_nag_at: datetime, level: int) -> None:
         await db.commit()
 
 
+async def get_recent_meals(wxid: str, n: int = 3) -> list[tuple]:
+    async with aiosqlite.connect(settings.database_path) as db:
+        cur = await db.execute(
+            """SELECT id, meal_type, summary, total_kcal, eaten_at
+               FROM meals WHERE wxid = ? ORDER BY eaten_at DESC LIMIT ?""",
+            (wxid, n),
+        )
+        rows = await cur.fetchall()
+    return list(rows)
+
+
+async def update_meal(
+    meal_id: int,
+    *,
+    summary: str,
+    meal_type: str,
+    items: list,
+    total_kcal: float,
+    protein_g: float,
+    fat_g: float,
+    carbs_g: float,
+) -> None:
+    async with aiosqlite.connect(settings.database_path) as db:
+        await db.execute(
+            """UPDATE meals SET summary=?, meal_type=?, items_json=?,
+               total_kcal=?, protein_g=?, fat_g=?, carbs_g=? WHERE id=?""",
+            (summary, meal_type, json.dumps(items, ensure_ascii=False),
+             total_kcal, protein_g, fat_g, carbs_g, meal_id),
+        )
+        await db.commit()
+
+
+async def delete_meal(meal_id: int) -> None:
+    async with aiosqlite.connect(settings.database_path) as db:
+        await db.execute("DELETE FROM meals WHERE id = ?", (meal_id,))
+        await db.commit()
+
+
+async def get_today_summary(wxid: str) -> dict:
+    from zoneinfo import ZoneInfo
+    today = datetime.now(ZoneInfo(settings.timezone)).strftime("%Y-%m-%d")
+    meals = await meals_for_date(wxid, today)
+    return {
+        "date": today,
+        "meal_count": len(meals),
+        "meals": [
+            {
+                "meal_id": m.id,
+                "meal_type": m.meal_type,
+                "summary": m.summary,
+                "total_kcal": m.total_kcal,
+                "eaten_at": m.eaten_at.isoformat(),
+            }
+            for m in meals
+        ],
+        "totals": {
+            "kcal": sum(m.total_kcal for m in meals),
+            "protein_g": sum(m.protein_g for m in meals),
+            "fat_g": sum(m.fat_g for m in meals),
+            "carbs_g": sum(m.carbs_g for m in meals),
+        },
+    }
+
+
 async def reset_nag_state(wxid: str) -> None:
     async with aiosqlite.connect(settings.database_path) as db:
         await db.execute(
