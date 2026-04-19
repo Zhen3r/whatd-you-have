@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_PATH: /app/data/whatd_you_have.db
+      WECHATBOT_CRED_PATH: /app/data/wechatbot_credentials.json
+    volumes:
+      - whatd_data:/app/data
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+volumes:
+  whatd_data:

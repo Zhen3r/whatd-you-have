@@ -51,6 +51,16 @@ whatd-you-have
 - 不要用多 worker——APScheduler 和 SDK 都是 stateful
 - 凭证和 DB 都在 `./data/`，挂载持久卷即可
 
+### Docker Compose
+
+```bash
+cp .env.example .env   # 填入 KIMI_API_KEY 等
+docker compose up -d --build
+docker compose logs -f bot
+```
+
+首次启动在日志里会出现扫码登录 URL。数据与微信凭证保存在命名卷 `whatd_data`（容器内 `/app/data`），`docker compose down` 不会删掉该卷；要清空数据需 `docker volume rm whatd-you-have_whatd_data`（卷名以 `docker volume ls` 为准）。
+
 ## 数据
 
 SQLite：`./data/whatd_you_have.db`，三张表 `users` / `meals` / `nag_state`。
