@@ -1,6 +1,11 @@
 services:
   bot:
-    build: .
+    build: 
+      context: .
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
     env_file: .env
     environment:
       DATABASE_PATH: /app/data/whatd_you_have.db
