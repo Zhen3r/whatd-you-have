@@ -83,22 +83,45 @@ async def send_daily_summary(bot: WeChatBot) -> None:
 async def nag_tick(bot: WeChatBot) -> None:
     now_local = local_now()
     if not (settings.nag_start_hour <= now_local.hour < settings.nag_end_hour):
+        log.debug(
+            "nag_tick skipped: local hour %s not in [%s, %s)",
+            now_local.hour,
+            settings.nag_start_hour,
+            settings.nag_end_hour,
+        )
         return
     threshold = timedelta(hours=settings.nag_after_hours)
     min_gap = timedelta(minutes=settings.nag_interval_minutes)
     now_utc = datetime.now(timezone.utc)
-    for wxid in await storage.list_user_wxids():
+    wxids = await storage.list_user_wxids()
+    log.debug("nag_tick: checking %d user(s)", len(wxids))
+    for wxid in wxids:
         last_meal = await storage.last_meal_time(wxid)
         if last_meal is None:
+            log.debug("nag_tick %s: skip (no meals yet)", wxid)
             continue
-        if now_utc - last_meal < threshold:
+        since_meal = now_utc - last_meal
+        if since_meal < threshold:
+            log.debug(
+                "nag_tick %s: skip (%.1fh since last meal < nag_after %sh)",
+                wxid,
+                since_meal.total_seconds() / 3600,
+                settings.nag_after_hours,
+            )
             continue
         last_nag_at, level = await storage.get_nag_state(wxid)
         if last_nag_at is not None and now_utc - last_nag_at < min_gap:
+            log.debug(
+                "nag_tick %s: skip (last nag %.1f min ago < interval %s min)",
+                wxid,
+                (now_utc - last_nag_at).total_seconds() / 60,
+                settings.nag_interval_minutes,
+            )
             continue
         msg, new_level = next_nag(level)
         if await _safe_send(bot, wxid, msg):
             await storage.set_nag_state(wxid, now_utc, new_level)
+            log.info("nag sent %s level %s -> %s", wxid, level, new_level)
 
 
 def start_scheduler(bot: WeChatBot) -> AsyncIOScheduler:
@@ -119,7 +142,8 @@ def start_scheduler(bot: WeChatBot) -> AsyncIOScheduler:
     )
     sched.add_job(
         nag_tick,
-        IntervalTrigger(minutes=max(5, settings.nag_interval_minutes // 3)),
+        IntervalTrigger(minutes=max(1, settings.nag_interval_minutes // 3),
+                        start_date=local_now() + timedelta(seconds=10)),
         args=[bot],
         id="nag_tick",
         replace_existing=True,
